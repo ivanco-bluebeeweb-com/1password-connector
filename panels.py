@@ -75,15 +75,15 @@ async def sidebar(ctx, **kwargs) -> object:
             children=[
                 ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Label", variant="label"),
-                    ui.Input(name="label", placeholder="e.g. Prod vaults"),
+                    ui.Input(param_name="label", placeholder="e.g. Prod vaults"),
                 ]),
                 ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Connect server URL", variant="label"),
-                    ui.Input(name="base_url", placeholder="https://connect.yourcompany.com"),
+                    ui.Input(param_name="base_url", placeholder="https://connect.yourcompany.com"),
                 ]),
                 ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Access token", variant="label"),
-                    ui.Input(name="access_token", type="password", placeholder="Access token from the Connect server setup"),
+                    ui.Input(param_name="access_token", placeholder="Access token from the Connect server setup"),
                 ]),
             ],
         ),
