@@ -1,0 +1,1355 @@
+{
+  "manifest_schema_version": 3,
+  "sdk_version": "5.13.0",
+  "app_id": "1password-connector",
+  "version": "0.1.0",
+  "name": "1Password",
+  "description": "Connect your own 1Password Connect Server (self-hosted, Bearer access token) to read and manage vaults, items (logins, passwords, secure notes, API credentials), and file attachments -- full read/write plus value-add vault health and stale-item reports. Item secrets are never logged.",
+  "icon": "icon.svg",
+  "actions_explicit": true,
+  "system": false,
+  "capabilities": [
+    "1password:read",
+    "1password:write"
+  ],
+  "tools": [
+    {
+      "name": "connect_onepassword",
+      "description": "Connect your own 1Password Connect Server (self-hosted, Bearer access token) by saving its base URL and access token, after checking it actually works.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "1password.connection.created"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "label": {
+            "default": "",
+            "description": "A friendly name for this Connect server, e.g. 'Prod vaults'.",
+            "title": "Label",
+            "type": "string"
+          },
+          "base_url": {
+            "description": "Your 1Password Connect server's base URL, e.g. https://connect.yourcompany.com",
+            "title": "Base Url",
+            "type": "string"
+          },
+          "access_token": {
+            "description": "The access token issued when you set up this Connect server (1Password Business admin console).",
+            "title": "Access Token",
+            "type": "string"
+          },
+          "verify_ssl": {
+            "default": true,
+            "description": "Verify the Connect server's TLS certificate. Turn off only for self-signed certs in trusted internal networks.",
+            "title": "Verify Ssl",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_url",
+          "access_token"
+        ],
+        "title": "ConnectOnePasswordParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "vault_count": {
+            "default": 0,
+            "title": "Vault Count",
+            "type": "integer"
+          }
+        },
+        "title": "ConnectOnePasswordResult",
+        "type": "object"
+      },
+      "event": "1password-connector.connect",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "list_connections",
+      "description": "List the connected 1Password Connect servers.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {},
+      "return_schema": {
+        "$defs": {
+          "OnePasswordConnection": {
+            "properties": {
+              "id": {
+                "default": "",
+                "title": "Id",
+                "type": "string"
+              },
+              "label": {
+                "default": "",
+                "title": "Label",
+                "type": "string"
+              },
+              "base_url": {
+                "default": "",
+                "title": "Base Url",
+                "type": "string"
+              },
+              "vault_count": {
+                "default": 0,
+                "title": "Vault Count",
+                "type": "integer"
+              }
+            },
+            "title": "OnePasswordConnection",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/$defs/OnePasswordConnection"
+            },
+            "title": "Connections",
+            "type": "array"
+          }
+        },
+        "title": "ConnectionList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "disconnect_onepassword",
+      "description": "Disconnect a 1Password Connect server: deletes the saved base URL/access token. Nothing in 1Password itself is changed.",
+      "action_type": "destructive",
+      "chain_callable": true,
+      "effects": [
+        "1password.connection.removed"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "description": "The connection id to disconnect, from list_connections.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection_id"
+        ],
+        "title": "DisconnectOnePasswordParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "1password-connector.disconnect",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "list_vaults",
+      "description": "List vaults this 1Password Connect server was granted access to. There is no way to list every vault in the account -- only the ones this server's token can reach.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "ListVaultsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "Vault": {
+            "properties": {
+              "id": {
+                "default": "",
+                "title": "Id",
+                "type": "string"
+              },
+              "name": {
+                "default": "",
+                "title": "Name",
+                "type": "string"
+              },
+              "attribute_version": {
+                "default": 0,
+                "title": "Attribute Version",
+                "type": "integer"
+              },
+              "content_version": {
+                "default": 0,
+                "title": "Content Version",
+                "type": "integer"
+              },
+              "items": {
+                "default": 0,
+                "title": "Items",
+                "type": "integer"
+              },
+              "type": {
+                "default": "",
+                "title": "Type",
+                "type": "string"
+              },
+              "created_at": {
+                "default": "",
+                "title": "Created At",
+                "type": "string"
+              },
+              "updated_at": {
+                "default": "",
+                "title": "Updated At",
+                "type": "string"
+              }
+            },
+            "title": "Vault",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "vaults": {
+            "items": {
+              "$ref": "#/$defs/Vault"
+            },
+            "title": "Vaults",
+            "type": "array"
+          }
+        },
+        "title": "VaultList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "get_vault",
+      "description": "Read one vault's metadata in full by id.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id"
+        ],
+        "title": "GetVaultParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "attribute_version": {
+            "default": 0,
+            "title": "Attribute Version",
+            "type": "integer"
+          },
+          "content_version": {
+            "default": 0,
+            "title": "Content Version",
+            "type": "integer"
+          },
+          "items": {
+            "default": 0,
+            "title": "Items",
+            "type": "integer"
+          },
+          "type": {
+            "default": "",
+            "title": "Type",
+            "type": "string"
+          },
+          "created_at": {
+            "default": "",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "default": "",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "title": "Vault",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "list_items",
+      "description": "List items (logins, passwords, secure notes, API credentials, and more) inside one vault. Item summaries do NOT include secret field values -- use get_item for those.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "filter_query": {
+            "default": "",
+            "description": "1Password filter expression, e.g. \"title eq \\\"Prod DB\\\"\". Leave empty to list everything.",
+            "title": "Filter Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id"
+        ],
+        "title": "ListItemsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "ItemSummary": {
+            "properties": {
+              "id": {
+                "default": "",
+                "title": "Id",
+                "type": "string"
+              },
+              "title": {
+                "default": "",
+                "title": "Title",
+                "type": "string"
+              },
+              "category": {
+                "default": "",
+                "title": "Category",
+                "type": "string"
+              },
+              "vault_id": {
+                "default": "",
+                "title": "Vault Id",
+                "type": "string"
+              },
+              "favorite": {
+                "default": false,
+                "title": "Favorite",
+                "type": "boolean"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Tags",
+                "type": "array"
+              },
+              "created_at": {
+                "default": "",
+                "title": "Created At",
+                "type": "string"
+              },
+              "updated_at": {
+                "default": "",
+                "title": "Updated At",
+                "type": "string"
+              }
+            },
+            "title": "ItemSummary",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/$defs/ItemSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "ItemList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "get_item",
+      "description": "Read one item in full, INCLUDING its secret field values (passwords, API keys, private notes). This exposes real credentials -- use only when you actually need the secret value.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id"
+        ],
+        "title": "GetItemParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "vault_id": {
+            "default": "",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "favorite": {
+            "default": false,
+            "title": "Favorite",
+            "type": "boolean"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "fields": {
+            "description": "Every field on the item, INCLUDING secret values (passwords, API keys) -- this is the whole point of reading an item.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "urls": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Urls",
+            "type": "array"
+          },
+          "created_at": {
+            "default": "",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "default": "",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "title": "ItemDetail",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "create_item",
+      "description": "Create a new item (login, password, secure note, API credential, etc) in a vault. Cannot create CUSTOM or DOCUMENT category items -- 1Password's own API restriction.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "1password.item.created"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id to create the item in, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "title": {
+            "description": "The item's display title.",
+            "title": "Title",
+            "type": "string"
+          },
+          "category": {
+            "default": "LOGIN",
+            "description": "Item category: LOGIN, PASSWORD, SECURE_NOTE, API_CREDENTIAL, SERVER, DATABASE, CREDIT_CARD, IDENTITY, or others 1Password supports.",
+            "title": "Category",
+            "type": "string"
+          },
+          "fields_json": {
+            "description": "JSON array of field objects, e.g. '[{\"label\":\"username\",\"value\":\"admin\",\"purpose\":\"USERNAME\"},{\"label\":\"password\",\"value\":\"secret\",\"purpose\":\"PASSWORD\"}]'.",
+            "title": "Fields Json",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags to apply to the new item.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vault_id",
+          "title",
+          "fields_json"
+        ],
+        "title": "CreateItemParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "vault_id": {
+            "default": "",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "favorite": {
+            "default": false,
+            "title": "Favorite",
+            "type": "boolean"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "fields": {
+            "description": "Every field on the item, INCLUDING secret values (passwords, API keys) -- this is the whole point of reading an item.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "urls": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Urls",
+            "type": "array"
+          },
+          "created_at": {
+            "default": "",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "default": "",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "title": "ItemDetail",
+        "type": "object"
+      },
+      "event": "1password-connector.item_created",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "update_item",
+      "description": "Update selected fields of an existing item using RFC6902 JSON Patch operations (add/remove/replace). Only the given operations change; everything else on the item stays as-is.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "1password.item.updated"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id to replace, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "title": {
+            "description": "The item's display title (required even if unchanged -- this is a full replace).",
+            "title": "Title",
+            "type": "string"
+          },
+          "category": {
+            "description": "The item's category (required even if unchanged).",
+            "title": "Category",
+            "type": "string"
+          },
+          "fields_json": {
+            "description": "JSON array of the item's full new field list, same shape as create_item's fields_json.",
+            "title": "Fields Json",
+            "type": "string"
+          },
+          "tags": {
+            "description": "The item's full new tag list.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id",
+          "title",
+          "category",
+          "fields_json"
+        ],
+        "title": "UpdateItemParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "vault_id": {
+            "default": "",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "favorite": {
+            "default": false,
+            "title": "Favorite",
+            "type": "boolean"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "fields": {
+            "description": "Every field on the item, INCLUDING secret values (passwords, API keys) -- this is the whole point of reading an item.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "urls": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Urls",
+            "type": "array"
+          },
+          "created_at": {
+            "default": "",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "default": "",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "title": "ItemDetail",
+        "type": "object"
+      },
+      "event": "1password-connector.item_updated",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "delete_item",
+      "description": "Permanently delete an item from a vault. Cannot be undone.",
+      "action_type": "destructive",
+      "chain_callable": true,
+      "effects": [
+        "1password.item.deleted"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id to delete, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id"
+        ],
+        "title": "DeleteItemParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "1password-connector.item_deleted",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "list_files",
+      "description": "List file attachments on an item (e.g. a document or image attached to a secure note).",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id whose file attachments to list, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id"
+        ],
+        "title": "ListFilesParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "FileSummary": {
+            "properties": {
+              "id": {
+                "default": "",
+                "title": "Id",
+                "type": "string"
+              },
+              "name": {
+                "default": "",
+                "title": "Name",
+                "type": "string"
+              },
+              "size": {
+                "default": 0,
+                "title": "Size",
+                "type": "integer"
+              },
+              "content_path": {
+                "default": "",
+                "title": "Content Path",
+                "type": "string"
+              }
+            },
+            "title": "FileSummary",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/$defs/FileSummary"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "title": "FileList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "get_file",
+      "description": "Read one file attachment's metadata (name, size) by id.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "file_id": {
+            "description": "The file's id, from list_files.",
+            "title": "File Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id",
+          "file_id"
+        ],
+        "title": "GetFileParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "default": 0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "content_path": {
+            "default": "",
+            "title": "Content Path",
+            "type": "string"
+          }
+        },
+        "title": "FileDetail",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "get_file_content",
+      "description": "Download a file attachment's actual content, base64-encoded. Exposes real file data -- use only when you actually need the file's bytes.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "item_id": {
+            "description": "The item's id, from list_items.",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "file_id": {
+            "description": "The file's id, from list_files.",
+            "title": "File Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "item_id",
+          "file_id"
+        ],
+        "title": "GetFileContentParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "content_base64": {
+            "default": "",
+            "title": "Content Base64",
+            "type": "string"
+          }
+        },
+        "title": "FileContent",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "list_api_activity",
+      "description": "List API activity (audit trail) for this Connect server's own access token usage.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "description": "Number of recent API activity entries to return.",
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "ListApiActivityParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "ApiActivityEntry": {
+            "properties": {
+              "timestamp": {
+                "default": "",
+                "title": "Timestamp",
+                "type": "string"
+              },
+              "action": {
+                "default": "",
+                "title": "Action",
+                "type": "string"
+              },
+              "result": {
+                "default": "",
+                "title": "Result",
+                "type": "string"
+              },
+              "request_id": {
+                "default": "",
+                "title": "Request Id",
+                "type": "string"
+              }
+            },
+            "title": "ApiActivityEntry",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/$defs/ApiActivityEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          }
+        },
+        "title": "ApiActivityList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "audit_vault_health",
+      "description": "Build one aggregated health report across every vault this Connect server can reach: item count and category breakdown per vault.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "AuditVaultHealthParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "VaultHealthSummary": {
+            "properties": {
+              "vault_id": {
+                "default": "",
+                "title": "Vault Id",
+                "type": "string"
+              },
+              "vault_name": {
+                "default": "",
+                "title": "Vault Name",
+                "type": "string"
+              },
+              "item_count": {
+                "default": 0,
+                "title": "Item Count",
+                "type": "integer"
+              },
+              "by_category": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "title": "By Category",
+                "type": "object"
+              }
+            },
+            "title": "VaultHealthSummary",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "vault_count": {
+            "default": 0,
+            "title": "Vault Count",
+            "type": "integer"
+          },
+          "total_items": {
+            "default": 0,
+            "title": "Total Items",
+            "type": "integer"
+          },
+          "vaults": {
+            "items": {
+              "$ref": "#/$defs/VaultHealthSummary"
+            },
+            "title": "Vaults",
+            "type": "array"
+          }
+        },
+        "title": "VaultHealthReport",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    },
+    {
+      "name": "get_stale_items_report",
+      "description": "Value-add report: scan one vault's items and flag every one not updated in at least the given number of days -- candidates for password rotation review.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved 1Password Connect server to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "vault_id": {
+            "description": "The vault's id to scan, from list_vaults.",
+            "title": "Vault Id",
+            "type": "string"
+          },
+          "min_days_stale": {
+            "default": 180,
+            "description": "Minimum number of days since last update to flag an item as stale.",
+            "minimum": 1,
+            "title": "Min Days Stale",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "vault_id"
+        ],
+        "title": "GetStaleItemsReportParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "StaleItem": {
+            "properties": {
+              "item_id": {
+                "default": "",
+                "title": "Item Id",
+                "type": "string"
+              },
+              "title": {
+                "default": "",
+                "title": "Title",
+                "type": "string"
+              },
+              "category": {
+                "default": "",
+                "title": "Category",
+                "type": "string"
+              },
+              "days_since_update": {
+                "default": 0,
+                "title": "Days Since Update",
+                "type": "integer"
+              },
+              "updated_at": {
+                "default": "",
+                "title": "Updated At",
+                "type": "string"
+              }
+            },
+            "title": "StaleItem",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "count": {
+            "default": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/$defs/StaleItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "StaleItemsReport",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_1password-connector_chat"
+    }
+  ],
+  "signals": [],
+  "schedules": [],
+  "required_scopes": [],
+  "icon_size_bytes": 677,
+  "panels": [
+    {
+      "panel_id": "sidebar",
+      "slot": "left",
+      "title": "",
+      "tree": {},
+      "icon": "",
+      "refresh": "manual",
+      "center_overlay": false
+    },
+    {
+      "panel_id": "onepassword_settings",
+      "slot": "center",
+      "title": "",
+      "tree": {},
+      "icon": "",
+      "refresh": "manual",
+      "center_overlay": false
+    }
+  ]
+}
