@@ -65,26 +65,25 @@ def _help_modal() -> ui.UINode:
 @ext.panel("sidebar", slot="left")
 async def sidebar(ctx, **kwargs) -> object:
     connections = await h._load_connections(ctx)
-    return ui.Stack(direction="v", gap=3, full_width=True, children=[
+    return ui.Stack(direction="v", gap=3, children=[
         ui.Text("1Password", variant="heading"),
         _connections_section(connections),
         ui.Divider(),
         ui.Form(
             submit_label="Connect",
-            on_submit=ui.Call("connect_onepassword"),
-            full_width=True,
+            action=ui.Call("connect_onepassword"),
             children=[
-                ui.Stack(direction="v", gap=1, full_width=True, children=[
+                ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Label", variant="label"),
-                    ui.Input(name="label", placeholder="e.g. Prod vaults", full_width=True),
+                    ui.Input(name="label", placeholder="e.g. Prod vaults"),
                 ]),
-                ui.Stack(direction="v", gap=1, full_width=True, children=[
+                ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Connect server URL", variant="label"),
-                    ui.Input(name="base_url", placeholder="https://connect.yourcompany.com", full_width=True),
+                    ui.Input(name="base_url", placeholder="https://connect.yourcompany.com"),
                 ]),
-                ui.Stack(direction="v", gap=1, full_width=True, children=[
+                ui.Stack(direction="v", gap=1, children=[
                     ui.Text("Access token", variant="label"),
-                    ui.Input(name="access_token", type="password", placeholder="Access token from the Connect server setup", full_width=True),
+                    ui.Input(name="access_token", type="password", placeholder="Access token from the Connect server setup"),
                 ]),
             ],
         ),
