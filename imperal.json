@@ -88,7 +88,11 @@
       "chain_callable": true,
       "effects": [],
       "id_projection": "",
-      "params_schema": {},
+      "params_schema": {
+        "properties": {},
+        "title": "ListConnectionsParams",
+        "type": "object"
+      },
       "return_schema": {
         "$defs": {
           "OnePasswordConnection": {
@@ -1332,6 +1336,11 @@
   "schedules": [],
   "required_scopes": [],
   "icon_size_bytes": 677,
+  "lifecycle": {
+    "health_check": {
+      "interval_sec": 60
+    }
+  },
   "panels": [
     {
       "panel_id": "sidebar",
