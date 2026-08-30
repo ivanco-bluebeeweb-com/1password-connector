@@ -1,0 +1,18 @@
+{
+  "connect_onepassword": 0,
+  "list_connections": 0,
+  "disconnect_onepassword": 0,
+  "list_vaults": 8,
+  "get_vault": 8,
+  "list_items": 8,
+  "get_item": 8,
+  "create_item": 16,
+  "update_item": 16,
+  "delete_item": 20,
+  "list_files": 8,
+  "get_file": 8,
+  "get_file_content": 8,
+  "list_api_activity": 8,
+  "audit_vault_health": 40,
+  "get_stale_items_report": 40
+}
