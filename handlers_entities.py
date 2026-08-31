@@ -74,7 +74,7 @@ async def list_vaults(ctx, params: ListVaultsParams) -> ActionResult:
         vaults = await oc.request(ctx, conn, "GET", "/vaults", action="list vaults")
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(VaultList(vaults=[_vault_to_entity(v) for v in (vaults or [])]))
+    return ActionResult.success(VaultList(vaults=[_vault_to_entity(v) for v in (vaults or [])]), summary="Vaults listed.")
 
 
 @chat.function(
@@ -91,7 +91,7 @@ async def get_vault(ctx, params: GetVaultParams) -> ActionResult:
         v = await oc.request(ctx, conn, "GET", f"/vaults/{params.vault_id}", action="get vault")
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(_vault_to_entity(v))
+    return ActionResult.success(_vault_to_entity(v), summary="Vault retrieved.")
 
 
 @chat.function(
@@ -115,7 +115,7 @@ async def list_items(ctx, params: ListItemsParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(ItemList(items=[_item_summary(i) for i in (items or [])]))
+    return ActionResult.success(ItemList(items=[_item_summary(i) for i in (items or [])]), summary="Items listed.")
 
 
 @chat.function(
@@ -135,7 +135,7 @@ async def get_item(ctx, params: GetItemParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(_item_detail(i))
+    return ActionResult.success(_item_detail(i), summary="Item retrieved.")
 
 
 @chat.function(
@@ -160,7 +160,7 @@ async def create_item(ctx, params: CreateItemParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(_item_detail(i))
+    return ActionResult.success(_item_detail(i), summary="Item created.")
 
 
 @chat.function(
@@ -191,7 +191,7 @@ async def update_item(ctx, params: UpdateItemParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(_item_detail(i))
+    return ActionResult.success(_item_detail(i), summary="Item updated.")
 
 
 @chat.function(
@@ -211,7 +211,7 @@ async def delete_item(ctx, params: DeleteItemParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.item_id))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.item_id), summary="Item deleted.")
 
 
 @chat.function(
@@ -231,10 +231,10 @@ async def list_files(ctx, params: ListFilesParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(FileList(files=[
+    return ActionResult.success(FileList(files=[
         FileSummary(id=f.get("id", ""), name=f.get("name", ""), size=f.get("size", 0))
         for f in (files or [])
-    ]))
+    ]), summary="Files listed.")
 
 
 @chat.function(
@@ -255,10 +255,10 @@ async def get_file(ctx, params: GetFileParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(FileDetail(
+    return ActionResult.success(FileDetail(
         id=f.get("id", ""), name=f.get("name", ""), size=f.get("size", 0),
         content_path=f.get("content_path", ""),
-    ))
+    ), summary="File retrieved.")
 
 
 @chat.function(
@@ -280,9 +280,9 @@ async def get_file_content(ctx, params: GetFileContentParams) -> ActionResult:
         )
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(FileContent(
+    return ActionResult.success(FileContent(
         id=params.file_id, name="", content_base64=base64.b64encode(raw).decode("ascii"),
-    ))
+    ), summary="File content retrieved.")
 
 
 @chat.function(
@@ -302,10 +302,10 @@ async def list_api_activity(ctx, params: ListApiActivityParams) -> ActionResult:
     except oc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
     rows = data if isinstance(data, list) else (data.get("items", []) if isinstance(data, dict) else [])
-    return ActionResult.ok(ApiActivityList(entries=[
+    return ActionResult.success(ApiActivityList(entries=[
         ApiActivityEntry(
             timestamp=r.get("timestamp", ""), action=r.get("action", ""),
             result=r.get("result", ""), request_id=r.get("request_id", ""),
         )
         for r in rows
-    ]))
+    ]), summary="Api activity listed.")

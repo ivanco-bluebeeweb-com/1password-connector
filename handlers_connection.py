@@ -94,9 +94,9 @@ async def connect_onepassword(ctx, params: ConnectOnePasswordParams) -> ActionRe
     connections = await _load_connections(ctx)
     connections.append(conn)
     await _save_connections(ctx, connections)
-    return ActionResult.ok(ConnectOnePasswordResult(
+    return ActionResult.success(ConnectOnePasswordResult(
         connection_id=conn["id"], label=conn["label"], vault_count=vault_count,
-    ))
+    ), summary="Onepassword connected.")
 
 
 @chat.function(
@@ -107,7 +107,7 @@ async def connect_onepassword(ctx, params: ConnectOnePasswordParams) -> ActionRe
 async def list_connections(ctx, params: ListConnectionsParams) -> ActionResult:
     """List saved 1Password Connect server connections."""
     connections = await _load_connections(ctx)
-    return ActionResult.ok(ConnectionList(connections=[_connection_to_entity(c) for c in connections]))
+    return ActionResult.success(ConnectionList(connections=[_connection_to_entity(c) for c in connections]), summary="Connections listed.")
 
 
 @chat.function(
@@ -124,4 +124,4 @@ async def disconnect_onepassword(ctx, params: DisconnectOnePasswordParams) -> Ac
     if len(remaining) == len(connections):
         return ActionResult.error("No such 1Password connection.", code=oc.OP_NOT_CONNECTED)
     await _save_connections(ctx, remaining)
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.connection_id))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.connection_id), summary="Onepassword disconnected.")

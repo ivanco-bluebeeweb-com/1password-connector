@@ -49,9 +49,9 @@ async def audit_vault_health(ctx, params: AuditVaultHealthParams) -> ActionResul
         summaries.append(VaultHealthSummary(
             vault_id=vault_id, vault_name=v.get("name", ""), item_count=count, by_category=by_category,
         ))
-    return ActionResult.ok(VaultHealthReport(
+    return ActionResult.success(VaultHealthReport(
         vault_count=len(summaries), total_items=total_items, vaults=summaries,
-    ))
+    ), summary="Vault health audit ready.")
 
 
 @chat.function(
@@ -88,4 +88,4 @@ async def get_stale_items_report(ctx, params: GetStaleItemsReportParams) -> Acti
                 days_since_update=days, updated_at=updated_raw,
             ))
     stale.sort(key=lambda x: x.days_since_update, reverse=True)
-    return ActionResult.ok(StaleItemsReport(count=len(stale), items=stale))
+    return ActionResult.success(StaleItemsReport(count=len(stale), items=stale), summary="Stale items report retrieved.")
